@@ -16,7 +16,7 @@
         "name": "Arturas Tutkus",
         "email": "arturas.tutkus@gmail.com"
       },
-      "source": "./plugis/crump",
+      "source": "./plugins/crump",
       "category": "productivity"
     }
   ]
