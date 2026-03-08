@@ -1,0 +1,23 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "crump-plugins",
+  "version": "0.2.0",
+  "description": "CRUMP project management plugins for Claude Code",
+  "owner": {
+    "name": "Arturas Tutkus",
+    "email": "arturas.tutkus@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "crump",
+      "description": "Project management for AI coding agents — task tracking, feature planning, and agent coordination",
+      "version": "0.2.0",
+      "author": {
+        "name": "Arturas Tutkus",
+        "email": "arturas.tutkus@gmail.com"
+      },
+      "source": "./crump",
+      "category": "productivity"
+    }
+  ]
+}
