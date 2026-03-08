@@ -1,6 +1,5 @@
 {
   "name": "crump",
   "version": "0.2.0",
-  "description": "Project management for AI coding agents",
-  "hooks": "../hooks"
+  "description": "crump — create, read, update, and manage projects"
 }
