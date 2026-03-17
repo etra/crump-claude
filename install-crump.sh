@@ -11,6 +11,7 @@ case "$OS" in
   Darwin)
     case "$ARCH" in
       arm64|aarch64) BINARY_PATH="crump/apple-aarch64/crump" ;;
+      x86_64) BINARY_PATH="crump/apple-x86_64/crump" ;;
       *) echo "Unsupported Mac architecture: $ARCH"; exit 1 ;;
     esac
     DEFAULT_DIR="$HOME/.local/bin"

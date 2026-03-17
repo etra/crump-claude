@@ -23,9 +23,10 @@ claude plugin install crump@crump-plugins
 
 | Platform | Download |
 |----------|----------|
-| macOS (Apple Silicon) | [apple-aarch64](https://github.com/etra/crump-claude/releases/latest) |
-| Linux (x86_64) | [linux-x86_64](https://github.com/etra/crump-claude/releases/latest) |
-| Windows (x86_64) | [windows-x86_64](https://github.com/etra/crump-claude/releases/latest) |
+| macOS (Apple Silicon) | [apple-aarch64](https://raw.githubusercontent.com/etra/crump-claude/main/crump/apple-aarch64/crump) |
+| macOS (Intel) | [apple-x86_64](https://raw.githubusercontent.com/etra/crump-claude/main/crump/apple-x86_64/crump) |
+| Linux (x86_64) | [linux-x86_64](https://raw.githubusercontent.com/etra/crump-claude/main/crump/linux-x86_64/crump) |
+| Windows (x86_64) | [windows-x86_64](https://raw.githubusercontent.com/etra/crump-claude/main/crump/windows-x86_64/crump.exe) |
 
 Place the binary in your PATH (e.g. `~/.local/bin/crump`).
 
