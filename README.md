@@ -4,7 +4,44 @@
 
 You plan. Agents execute. crump handles the pipeline.
 
-![Pipeline Dashboard](docs/images/pipeline.png)
+## Install
+
+### 1. Install the Claude Code plugin
+
+```bash
+claude plugin marketplace add https://github.com/etra/crump-claude
+claude plugin install crump@crump-plugins
+```
+
+### 2. Download the crump binary
+
+| Platform | Download |
+|----------|----------|
+| macOS (Apple Silicon) | [apple-aarch64](https://github.com/etra/crump-claude/releases/latest) |
+| Linux (x86_64) | [linux-x86_64](https://github.com/etra/crump-claude/releases/latest) |
+| Windows (x86_64) | [windows-x86_64](https://github.com/etra/crump-claude/releases/latest) |
+
+Place the binary in your PATH (e.g. `~/.local/bin/crump`).
+
+Or use the install script (macOS/Linux):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/etra/crump-claude/main/install-crump.sh | bash
+```
+
+### Prerequisites
+
+- [Claude Code](https://claude.ai/code)
+- [Git](https://git-scm.com/) with a GitHub remote
+- [GitHub CLI](https://cli.github.com/) — authenticated (`gh auth login`)
+
+---
+
+## Demo
+
+[![crump in action](https://img.youtube.com/vi/eoWbNVz3LYM/maxresdefault.jpg)](https://youtu.be/eoWbNVz3LYM)
+
+> **10 min demo** — creating tasks in an interactive session, watching the worker loop implement them, PRs opening automatically, merging, and seeing the full pipeline flow end-to-end.
 
 ---
 
@@ -78,33 +115,6 @@ Each phase can be **auto** (loop handles it) or **manual** (you control it). By 
 
 ---
 
-## Install
-
-### macOS / Linux
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/etra/crump-claude/main/install-crump.sh | bash
-```
-
-This downloads the binary, adds it to your PATH, and installs the Claude Code plugin.
-
-### Prerequisites
-
-- [Claude Code](https://claude.ai/code)
-- [Git](https://git-scm.com/) with a GitHub remote
-- [GitHub CLI](https://cli.github.com/) (`gh auth login`)
-
-### Windows
-
-Download from [releases](https://github.com/etra/crump-claude/releases), then:
-
-```bash
-claude plugin marketplace add https://github.com/etra/crump-claude
-claude plugin install crump@crump-plugins
-```
-
----
-
 ## Quick start
 
 ### 1. Create a workspace
@@ -164,6 +174,18 @@ Select `bypassPermissions` when prompted (agents need file access). The loop wil
 ### 5. Review and merge
 
 Tasks in `reviewing` have an open PR. Review it on GitHub, merge it, and the loop advances the task to `done`.
+
+---
+
+## Pipeline dashboard
+
+```bash
+crump webserver
+```
+
+![Pipeline](docs/images/pipeline.png)
+
+Opens at `http://localhost:8080` — shows pipeline view, task details, feature progress, audit log.
 
 ---
 
@@ -235,16 +257,6 @@ crump start planning   # Interactive: you + lead agent plan the project
 crump start once       # One sweep: advance everything by one step, exit
 crump start loop       # Continuous: keep executing until Ctrl+C
 ```
-
-## Web dashboard
-
-```bash
-crump webserver
-```
-
-![Webserver](docs/images/webserver.png)
-
-Opens at `http://localhost:8080` — shows pipeline view, task details, feature progress, audit log.
 
 ---
 
