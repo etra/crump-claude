@@ -42,6 +42,8 @@ if [ -z "$VERSIONS" ]; then
   echo "No tagged versions found. Installing from main branch."
   VERSION="main"
 else
+  LATEST=$(echo "$VERSIONS" | head -1)
+
   echo "Available versions:"
   i=1
   while IFS= read -r v; do
@@ -54,8 +56,7 @@ else
   done <<< "$VERSIONS"
   echo ""
 
-  LATEST=$(echo "$VERSIONS" | head -1)
-  read -rp "Pick a version number [1 for $LATEST]: " PICK
+  read -rp "Pick a version number [1 for $LATEST]: " PICK </dev/tty 2>/dev/null || PICK=""
   PICK=${PICK:-1}
 
   VERSION=$(echo "$VERSIONS" | sed -n "${PICK}p")
@@ -65,15 +66,15 @@ else
   fi
 fi
 
-echo "Selected version: $VERSION"
+echo "Installing crump $VERSION..."
 echo ""
 
 # --- Pick install directory ---
-read -rp "Install directory [$DEFAULT_DIR]: " INSTALL_DIR
-INSTALL_DIR=${INSTALL_DIR:-$DEFAULT_DIR}
+read -rp "Install directory [$DEFAULT_DIR]: " CUSTOM_DIR </dev/tty 2>/dev/null || CUSTOM_DIR=""
+INSTALL_DIR=${CUSTOM_DIR:-$DEFAULT_DIR}
 
 echo ""
-echo "Downloading crump $VERSION..."
+echo "Downloading..."
 
 TMP_FILE="/tmp/crump"
 
@@ -90,9 +91,9 @@ curl -fsSL -H "Accept: application/vnd.github.raw+json" \
   "https://api.github.com/repos/${REPO}/git/blobs/${SHA}" -o "$TMP_FILE"
 chmod +x "$TMP_FILE"
 mkdir -p "$INSTALL_DIR"
-mv "$TMP_FILE" "$INSTALL_DIR/$(basename "$BINARY_PATH")"
+mv "$TMP_FILE" "$INSTALL_DIR/crump"
 
-INSTALLED="$INSTALL_DIR/$(basename "$BINARY_PATH")"
+INSTALLED="$INSTALL_DIR/crump"
 echo "Installed crump to $INSTALLED"
 echo "Version: $("$INSTALLED" --version 2>/dev/null || echo 'unknown')"
 
@@ -100,13 +101,17 @@ echo "Version: $("$INSTALLED" --version 2>/dev/null || echo 'unknown')"
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
   echo ""
   echo "Warning: $INSTALL_DIR is not in your PATH."
-  echo "Add it:  export PATH=\"$INSTALL_DIR:\$PATH\""
+  echo "Add this to your shell profile (~/.zshrc or ~/.bashrc):"
+  echo ""
+  echo "  export PATH=\"$INSTALL_DIR:\$PATH\""
+  echo ""
+  echo "Then restart your terminal or run: source ~/.zshrc"
 fi
 
 echo ""
 
 # --- Plugin install ---
-read -rp "Install Claude Code plugin now? [Y/n]: " INSTALL_PLUGIN
+read -rp "Install Claude Code plugin now? [Y/n]: " INSTALL_PLUGIN </dev/tty 2>/dev/null || INSTALL_PLUGIN="Y"
 INSTALL_PLUGIN=${INSTALL_PLUGIN:-Y}
 
 if [[ "$INSTALL_PLUGIN" =~ ^[Yy]$ ]]; then
@@ -116,13 +121,13 @@ if [[ "$INSTALL_PLUGIN" =~ ^[Yy]$ ]]; then
   echo "Installing plugin..."
   claude plugin install crump@crump-plugins
   echo ""
-  echo "Done! Plugin installed. Run 'crump init' in your project to get started."
+  echo "Done! Run 'crump workspace init' in your project to get started."
 else
   echo ""
-  echo "To install the plugin manually, run:"
+  echo "To install the plugin later:"
   echo ""
   echo "  claude plugin marketplace add https://github.com/etra/crump-claude"
   echo "  claude plugin install crump@crump-plugins"
   echo ""
-  echo "Then run 'crump init' in your project to get started."
+  echo "Then run 'crump workspace init' in your project to get started."
 fi
