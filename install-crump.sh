@@ -75,10 +75,19 @@ INSTALL_DIR=${INSTALL_DIR:-$DEFAULT_DIR}
 echo ""
 echo "Downloading crump $VERSION..."
 
-DOWNLOAD_URL="https://raw.githubusercontent.com/${REPO}/${VERSION}/${BINARY_PATH}"
 TMP_FILE="/tmp/crump"
 
-curl -fsSL "$DOWNLOAD_URL" -o "$TMP_FILE"
+# GitHub raw endpoint doesn't serve large files; use the Git blob API instead
+SHA=$(curl -fsSL "https://api.github.com/repos/${REPO}/contents/${BINARY_PATH}?ref=${VERSION}" \
+  | grep '"sha"' | head -1 | sed 's/.*"sha": "\(.*\)".*/\1/')
+
+if [ -z "$SHA" ]; then
+  echo "Error: could not find binary at ${BINARY_PATH} for version ${VERSION}"
+  exit 1
+fi
+
+curl -fsSL -H "Accept: application/vnd.github.raw+json" \
+  "https://api.github.com/repos/${REPO}/git/blobs/${SHA}" -o "$TMP_FILE"
 chmod +x "$TMP_FILE"
 mkdir -p "$INSTALL_DIR"
 mv "$TMP_FILE" "$INSTALL_DIR/$(basename "$BINARY_PATH")"
