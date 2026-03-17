@@ -3,6 +3,20 @@ set -euo pipefail
 
 REPO="etra/crump-claude"
 
+# Check if we can prompt the user
+INTERACTIVE=false
+if [ -t 0 ]; then
+  INTERACTIVE=true
+fi
+
+prompt() {
+  local var_name="$1" prompt_text="$2" default="$3"
+  if $INTERACTIVE; then
+    read -rp "$prompt_text" "$var_name"
+  fi
+  eval "${var_name}=\${${var_name}:-$default}"
+}
+
 # --- Detect OS and architecture ---
 OS=$(uname -s)
 ARCH=$(uname -m)
@@ -44,25 +58,28 @@ if [ -z "$VERSIONS" ]; then
 else
   LATEST=$(echo "$VERSIONS" | head -1)
 
-  echo "Available versions:"
-  i=1
-  while IFS= read -r v; do
-    if [ "$i" -eq 1 ]; then
-      echo "  $i) $v (latest)"
-    else
-      echo "  $i) $v"
+  if $INTERACTIVE; then
+    echo "Available versions:"
+    i=1
+    while IFS= read -r v; do
+      if [ "$i" -eq 1 ]; then
+        echo "  $i) $v (latest)"
+      else
+        echo "  $i) $v"
+      fi
+      i=$((i + 1))
+    done <<< "$VERSIONS"
+    echo ""
+
+    prompt PICK "Pick a version number [1 for $LATEST]: " "1"
+
+    VERSION=$(echo "$VERSIONS" | sed -n "${PICK}p")
+    if [ -z "$VERSION" ]; then
+      echo "Invalid selection."
+      exit 1
     fi
-    i=$((i + 1))
-  done <<< "$VERSIONS"
-  echo ""
-
-  read -rp "Pick a version number [1 for $LATEST]: " PICK </dev/tty 2>/dev/null || PICK=""
-  PICK=${PICK:-1}
-
-  VERSION=$(echo "$VERSIONS" | sed -n "${PICK}p")
-  if [ -z "$VERSION" ]; then
-    echo "Invalid selection."
-    exit 1
+  else
+    VERSION="$LATEST"
   fi
 fi
 
@@ -70,8 +87,7 @@ echo "Installing crump $VERSION..."
 echo ""
 
 # --- Pick install directory ---
-read -rp "Install directory [$DEFAULT_DIR]: " CUSTOM_DIR </dev/tty 2>/dev/null || CUSTOM_DIR=""
-INSTALL_DIR=${CUSTOM_DIR:-$DEFAULT_DIR}
+prompt INSTALL_DIR "Install directory [$DEFAULT_DIR]: " "$DEFAULT_DIR"
 
 echo ""
 echo "Downloading..."
@@ -111,8 +127,7 @@ fi
 echo ""
 
 # --- Plugin install ---
-read -rp "Install Claude Code plugin now? [Y/n]: " INSTALL_PLUGIN </dev/tty 2>/dev/null || INSTALL_PLUGIN="Y"
-INSTALL_PLUGIN=${INSTALL_PLUGIN:-Y}
+prompt INSTALL_PLUGIN "Install Claude Code plugin now? [Y/n]: " "Y"
 
 if [[ "$INSTALL_PLUGIN" =~ ^[Yy]$ ]]; then
   echo ""
