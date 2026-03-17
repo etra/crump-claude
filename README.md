@@ -6,6 +6,12 @@ You plan. Agents execute. crump handles the pipeline.
 
 ## Install
 
+### Prerequisites
+
+- [Claude Code](https://claude.ai/code)
+- [Git](https://git-scm.com/) with a GitHub remote
+- [GitHub CLI](https://cli.github.com/) — authenticated (`gh auth login`)
+
 ### 1. Install the Claude Code plugin
 
 ```bash
@@ -28,12 +34,6 @@ Or use the install script (macOS/Linux):
 ```bash
 curl -fsSL https://raw.githubusercontent.com/etra/crump-claude/main/install-crump.sh | bash
 ```
-
-### Prerequisites
-
-- [Claude Code](https://claude.ai/code)
-- [Git](https://git-scm.com/) with a GitHub remote
-- [GitHub CLI](https://cli.github.com/) — authenticated (`gh auth login`)
 
 ---
 
