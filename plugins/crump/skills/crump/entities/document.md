@@ -22,7 +22,7 @@ Knowledge artifacts — specs, design docs, notes, or any reference material lin
 
 ### create
 
-Create a new document — specs, notes, design docs, or any reference material
+Create a document
 
 ```json
 {"entity": "document", "action": "create", "data": {"body": "...", "document_type_id": 1, "title": "..."}}
@@ -36,7 +36,7 @@ Create a new document — specs, notes, design docs, or any reference material
 
 ### get
 
-Retrieve a document and its content by ID
+Get a document by ID
 
 ```json
 {"entity": "document", "action": "get", "data": {"id": 1}}
@@ -48,7 +48,7 @@ Retrieve a document and its content by ID
 
 ### list
 
-List all documents in the project
+List all documents
 
 ```json
 {"entity": "document", "action": "list"}
@@ -56,7 +56,7 @@ List all documents in the project
 
 ### update
 
-Update document fields — title, body, or type
+Update document fields
 
 ```json
 {"entity": "document", "action": "update", "data": {"body": "...", "document_type_id": 1, "id": 1, "title": "..."}}
@@ -71,7 +71,7 @@ Update document fields — title, body, or type
 
 ### delete
 
-Permanently remove a document and all its links
+Delete a document
 
 ```json
 {"entity": "document", "action": "delete", "data": {"id": 1}}

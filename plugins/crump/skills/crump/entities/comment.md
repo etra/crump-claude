@@ -22,7 +22,7 @@ Threaded discussion on tasks and features — progress updates, questions, block
 
 ### create
 
-Post a comment on a task or feature — progress updates, questions, blocker details, or decisions
+Create a comment on a task or feature
 
 ```json
 {"entity": "comment", "action": "create", "data": {"actor": "...", "body": "...", "feature_id": 1, "parent_id": 1, "task_id": 1}}
@@ -38,7 +38,7 @@ Post a comment on a task or feature — progress updates, questions, blocker det
 
 ### get
 
-Retrieve a single comment by ID
+Get a comment by ID
 
 ```json
 {"entity": "comment", "action": "get", "data": {"id": 1}}
@@ -50,7 +50,7 @@ Retrieve a single comment by ID
 
 ### list
 
-List all comments for a task or feature — provide task_id or feature_id
+List comments for a task or feature
 
 ```json
 {"entity": "comment", "action": "list", "data": {"feature_id": 1, "task_id": 1}}
@@ -63,7 +63,7 @@ List all comments for a task or feature — provide task_id or feature_id
 
 ### update
 
-Edit an existing comment
+Update a comment
 
 ```json
 {"entity": "comment", "action": "update", "data": {"actor": "...", "body": "...", "id": 1}}
@@ -77,7 +77,7 @@ Edit an existing comment
 
 ### delete
 
-Remove a comment
+Delete a comment
 
 ```json
 {"entity": "comment", "action": "delete", "data": {"id": 1}}

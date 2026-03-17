@@ -1,35 +1,74 @@
 # project
 
-Top-level project configuration — title, description, and global settings
+Git repositories within the workspace — each project maps to a directory path configured per workstation
 
 ## Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | integer |  |
-| `summary` | string? |  |
-| `title` | string |  |
+| `name` | string |  |
+
+## Relations
+
+- has many `component`
 
 ## Actions
 
-### get
+### create
 
-Retrieve project configuration — title, description, and settings
-
-```json
-{"entity": "project", "action": "get"}
-```
-
-### save
-
-Update project configuration
+Create a project
 
 ```json
-{"entity": "project", "action": "save", "data": {"summary": "...", "title": "..."}}
+{"entity": "project", "action": "create", "data": {"name": "..."}}
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `summary` | string | no | High-level project description or overview |
-| `title` | string | yes | Project name |
+| `name` | string | yes | Project name (typically the git repo directory name) |
+
+### get
+
+Get a project by ID
+
+```json
+{"entity": "project", "action": "get", "data": {"id": 1}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | yes | ID of the entity to retrieve or delete |
+
+### list
+
+List all projects
+
+```json
+{"entity": "project", "action": "list"}
+```
+
+### update
+
+Update project fields
+
+```json
+{"entity": "project", "action": "update", "data": {"id": 1, "name": "..."}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | yes | ID of the project to update |
+| `name` | string | no | New project name |
+
+### delete
+
+Delete a project
+
+```json
+{"entity": "project", "action": "delete", "data": {"id": 1}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | yes | ID of the entity to retrieve or delete |
 

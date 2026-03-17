@@ -19,7 +19,7 @@ Classification labels for documents — e.g. 'spec', 'design', 'runbook', 'adr'
 
 ### create
 
-Create a new document type classification (e.g. spec, design, adr)
+Create a document type
 
 ```json
 {"entity": "document_type", "action": "create", "data": {"body": "...", "parent_id": 1, "title": "..."}}
@@ -33,7 +33,7 @@ Create a new document type classification (e.g. spec, design, adr)
 
 ### get
 
-Retrieve a document type by ID
+Get a document type by ID
 
 ```json
 {"entity": "document_type", "action": "get", "data": {"id": 1}}
@@ -45,7 +45,7 @@ Retrieve a document type by ID
 
 ### list
 
-List all available document types
+List all document types
 
 ```json
 {"entity": "document_type", "action": "list"}
@@ -53,7 +53,7 @@ List all available document types
 
 ### update
 
-Update document type fields — name or description
+Update document type fields
 
 ```json
 {"entity": "document_type", "action": "update", "data": {"body": "...", "id": 1, "parent_id": 1, "title": "..."}}
@@ -68,7 +68,7 @@ Update document type fields — name or description
 
 ### delete
 
-Remove a document type classification
+Delete a document type
 
 ```json
 {"entity": "document_type", "action": "delete", "data": {"id": 1}}

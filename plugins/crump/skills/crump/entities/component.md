@@ -1,6 +1,6 @@
 # component
 
-Modules or subsystems of the project — used to categorize tasks by area (e.g. backend, auth, UI)
+Modules or subsystems of the project — used to categorize tasks by area (e.g. backend, auth, UI). Each component belongs to a project (git repo).
 
 ## Fields
 
@@ -10,21 +10,23 @@ Modules or subsystems of the project — used to categorize tasks by area (e.g. 
 | `id` | integer |  |
 | `parent_id` | integer? |  |
 | `prefix` | string |  |
+| `project_id` | integer? | Project ID — links this component to a git repository |
 | `title` | string |  |
 
 ## Relations
 
 - has many `task`
 - has many `document`
+- has one `project`
 
 ## Actions
 
 ### create
 
-Create a new component to represent a module or subsystem
+Create a component
 
 ```json
-{"entity": "component", "action": "create", "data": {"body": "...", "parent_id": 1, "prefix": "...", "title": "..."}}
+{"entity": "component", "action": "create", "data": {"body": "...", "parent_id": 1, "prefix": "...", "project_id": 1, "title": "..."}}
 ```
 
 | Field | Type | Required | Description |
@@ -32,11 +34,12 @@ Create a new component to represent a module or subsystem
 | `body` | string | no | Description of what this component covers |
 | `parent_id` | integer | no | Parent component ID for nested hierarchies |
 | `prefix` | string | yes | Short prefix for task labeling (e.g. BE, FE, AUTH) |
+| `project_id` | integer | no | Project ID — which git repository this component belongs to |
 | `title` | string | yes | Name of the module or subsystem (e.g. Authentication, API Gateway) |
 
 ### get
 
-Retrieve a component and its details by ID
+Get a component by ID
 
 ```json
 {"entity": "component", "action": "get", "data": {"id": 1}}
@@ -48,7 +51,7 @@ Retrieve a component and its details by ID
 
 ### list
 
-List all components — use to see the system architecture breakdown
+List all components
 
 ```json
 {"entity": "component", "action": "list"}
@@ -56,10 +59,10 @@ List all components — use to see the system architecture breakdown
 
 ### update
 
-Update component fields — name or description
+Update component fields
 
 ```json
-{"entity": "component", "action": "update", "data": {"body": "...", "id": 1, "parent_id": 1, "prefix": "...", "title": "..."}}
+{"entity": "component", "action": "update", "data": {"body": "...", "id": 1, "parent_id": 1, "prefix": "...", "project_id": 1, "title": "..."}}
 ```
 
 | Field | Type | Required | Description |
@@ -68,11 +71,12 @@ Update component fields — name or description
 | `id` | integer | yes | ID of the component to update |
 | `parent_id` | integer | no | New parent component ID |
 | `prefix` | string | no | New prefix |
+| `project_id` | integer | no | New project ID |
 | `title` | string | no | New name |
 
 ### delete
 
-Permanently remove a component (does not delete its tasks)
+Delete a component
 
 ```json
 {"entity": "component", "action": "delete", "data": {"id": 1}}
@@ -84,7 +88,7 @@ Permanently remove a component (does not delete its tasks)
 
 ### add_task
 
-Assign an existing task to this component
+Assign a task to this component
 
 ```json
 {"entity": "component", "action": "add_task", "data": {"id": 1, "task_id": 1}}
@@ -97,7 +101,7 @@ Assign an existing task to this component
 
 ### add_document
 
-Link a document to this component as reference material
+Link a document to this component
 
 ```json
 {"entity": "component", "action": "add_document", "data": {"document_id": 1, "id": 1}}
@@ -123,7 +127,7 @@ Remove a document link from this component
 
 ### list_documents
 
-List all documents linked to this component
+List documents linked to this component
 
 ```json
 {"entity": "component", "action": "list_documents", "data": {"id": 1}}
