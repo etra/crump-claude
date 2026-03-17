@@ -111,7 +111,8 @@ mv "$TMP_FILE" "$INSTALL_DIR/crump"
 
 INSTALLED="$INSTALL_DIR/crump"
 echo "Installed crump to $INSTALLED"
-echo "Version: $("$INSTALLED" --version 2>/dev/null || echo 'unknown')"
+VERSION_OUT=$("$INSTALLED" --version 2>&1 || true)
+echo "Version: ${VERSION_OUT:-unknown}"
 
 # --- PATH warning ---
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then

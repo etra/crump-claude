@@ -72,47 +72,159 @@ crump started as a simple CRUD for tasks and features. Then it grew: a pipeline 
 
 ### The setup
 
+<table>
+<tr>
+<td>
+
 ```
-┌─────────────────────────────────────────────────────┐
-│ Terminal 1: Planning session                        │
-│                                                     │
-│ You + lead agent                                    │
-│ ├── Create features and tasks                       │
-│ ├── Write requirements                              │
-│ ├── Review agent's work                             │
-│ └── Approve PRs                                     │
-│                                                     │
-│ ~/work/my-project/                                  │
-└─────────────────────────┬───────────────────────────┘
-                          │
-                   Shared database
-                   (notifications)
-                          │
-┌─────────────────────────┴───────────────────────────┐
-│ Terminal 2: Worker loop                             │
-│                                                     │
-│ Automated agent execution                           │
-│ ├── Picks up approved tasks                         │
-│ ├── Creates branches                                │
-│ ├── Writes code                                     │
-│ ├── Opens PRs                                       │
-│ └── Waits for merge, moves to done                  │
-│                                                     │
-│ ~/work/my-project-worker/                           │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────┐
+│ Terminal 1: Planning session │
+│                              │
+│ You + lead agent             │
+│ ├── Create features & tasks  │
+│ ├── Write requirements       │
+│ ├── Review agent's work      │
+│ └── Approve PRs              │
+│                              │
+│ ~/work/my-project/           │
+└──────────────────────────────┘
 ```
+
+</td>
+<td align="center">
+
+```
+      ┌─────────────────┐
+ ◀──  │ Shared database  │  ──▶
+      │ (notifications)  │
+      └─────────────────┘
+```
+
+</td>
+<td>
+
+```
+┌──────────────────────────────┐
+│ Terminal 2: Worker loop      │
+│                              │
+│ Automated agent execution    │
+│ ├── Picks up approved tasks  │
+│ ├── Creates branches         │
+│ ├── Writes code              │
+│ ├── Opens PRs                │
+│ └── Waits for merge → done   │
+│                              │
+│ ~/work/my-project-worker/    │
+└──────────────────────────────┘
+```
+
+</td>
+</tr>
+</table>
 
 ### The pipeline
 
-Every task flows through phases:
+<table>
+<tr>
+<th align="center">You (planning)</th>
+<th align="center"></th>
+<th align="center">Worker (auto)</th>
+</tr>
+<tr>
+<td>
 
 ```
-draft → refine → refining → refined → implement → implementing → implemented → review → reviewing → reviewed → done
-       └─────── refine ───────┘      └────── implement ──────┘      └────── review ──────┘
-            write requirements            write code                    open PR, merge
+ Create task
+      │
+      ▼
+ ┌──────────┐
+ │  draft   │
+ └──────────┘
+      │
+ Write requirements
+      │
+      ▼
+ ┌──────────┐
+ │ refined  │
+ └──────────┘
+      │
+      ▼
+ advance to
+ implement
 ```
 
-Each phase can be **auto** (loop handles it) or **manual** (you control it). By default, implementation is auto — you plan, agents code.
+</td>
+<td align="center">
+
+```
+  ──▶
+```
+
+</td>
+<td>
+
+```
+       ┌─────────────┐
+       │ implementing │
+       └─────────────┘
+             │
+       create branch
+        write code
+       commit + push
+             │
+             ▼
+       ┌─────────────┐
+       │  reviewing   │
+       └─────────────┘
+             │
+         open PR
+```
+
+</td>
+</tr>
+<tr>
+<td>
+
+```
+ Review PR on GitHub
+ Merge PR
+      │
+      ▼
+ ┌──────────┐
+ │   done   │
+ └──────────┘
+```
+
+</td>
+<td align="center">
+
+```
+  ◀──
+```
+
+</td>
+<td>
+
+```
+ Detects PR merged
+ Advances task
+```
+
+</td>
+</tr>
+</table>
+
+Every task flows through three phases. Each phase has three states:
+
+| Phase | Pending | Active | Complete | What happens |
+|-------|---------|--------|----------|--------------|
+| **Refine** | `refine` | `refining` | `refined` | Write requirements |
+| **Implement** | `implement` | `implementing` | `implemented` | Create branch, write code, commit + push |
+| **Review** | `review` | `reviewing` | `reviewed` | Open PR, wait for merge |
+
+A new task starts in `draft`. After the final phase completes, it moves to `done`.
+
+Each phase can be **auto** (worker loop handles it) or **manual** (you control it). By default, implementation is auto — you plan, agents code.
 
 ---
 
@@ -132,16 +244,11 @@ You'll be guided through:
 - Project layout (single repo or multi-repo)
 - Pipeline phases (which are auto vs manual)
 
-### 2. Set up two directories
+### 2. Set up the worker directory
 
-Clone your repo twice — one for planning, one for the worker:
+Clone your repo a second time for the worker:
 
 ```bash
-# Your working copy (planning)
-cd ~/work/my-project
-crump workspace init "My Project"
-
-# Worker copy (automated execution)
 git clone <your-repo-url> ~/work/my-project-worker
 cd ~/work/my-project-worker
 crump workspace attach  # select the workspace you just created
@@ -216,8 +323,8 @@ crump manages these entities via `crump exec`:
 | `refined` | Signal: refinement done |
 | `implemented` | Signal: implementation done (summary = commit message) |
 | `reviewed` | Signal: review done (crump merges PR) |
-| `block` / `stuck` | Flag as blocked with reason |
-| `unblock` / `unstuck` | Clear blocked flag |
+| `block` | Flag as blocked with reason |
+| `unblock` | Clear blocked flag |
 | `reject` | Code was wrong — send back to implement |
 | `reset` | Requirements wrong — send back to draft |
 | `cancel` | Cancel the task |
@@ -243,7 +350,7 @@ crump task get --id 1
 ## Workspace commands
 
 ```bash
-crump workspace init [title]   # Create a new workspace
+crump workspace init           # Create a new workspace
 crump workspace list           # List all workspaces
 crump workspace attach         # Attach directory to existing workspace
 crump workspace info           # Show workspace details
@@ -263,13 +370,11 @@ crump start loop       # Continuous: keep executing until Ctrl+C
 
 ## How it works under the hood
 
-- **Pipeline state machine**: each task/feature has `check_entry`, `on_enter`, `on_exit`, `check_exit` per state
-- **Poke system**: every loop sweep "pokes" all tasks — reviewing checks if PR was merged
-- **Git automation**: crump uses `gh` CLI for branches, PRs, merges. Branch names include workspace hash for uniqueness
-- **Notifications**: loop writes events to DB, interactive sessions receive them on every `crump exec` call
-- **Audit trail**: every action is logged with timestamps and session IDs
+crump creates shared state between multiple agents running on the same machine — each in its own working directory of the same project. A SQLite database stores tasks, features, and pipeline state. On top of that:
 
-For the full technical details, see [How It Works](docs/how-it-works.md).
+- **Git automation** — branching, commits, PRs, and merges via `gh` CLI
+- **Notifications** — agents are notified of each other's progress
+- **Audit trail** — every action is logged with timestamps and session IDs
 
 ---
 
@@ -282,13 +387,3 @@ For the full technical details, see [How It Works](docs/how-it-works.md).
 
 ---
 
-## Built with
-
-crump is written in Rust:
-- **crump-core** — domain models, state machine, pipeline
-- **crump-sqlite** — SQLite storage
-- **crump-git** — git operations via `gh`
-- **crump-web** — Axum web dashboard
-- **crump** — CLI binary
-
-This repo (**crump-claude**) is the Claude Code plugin with skills, agent prompts, and pre-built binaries.
