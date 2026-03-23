@@ -38,8 +38,7 @@ case "$OS" in
     DEFAULT_DIR="$HOME/.local/bin"
     ;;
   *)
-    echo "Unsupported OS: $OS"
-    echo "Windows users: download crump.exe from https://github.com/etra/crump-claude/releases"
+    echo "Unsupported OS: $OS (macOS and Linux only)"
     exit 1
     ;;
 esac

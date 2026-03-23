@@ -6,20 +6,40 @@ You plan. Agents execute. crump handles the pipeline.
 
 ## Why
 
-I was building a large project with Claude Code and kept hitting the same problem: I'd describe what I wanted, Claude would start coding, and by the time it was done I'd already changed my mind about the approach. Planning and execution were tangled together. I tried `task.md` files, but managing markdown doesn't scale — it's hard to see what you have, hard to track status, and the agent keeps losing context.
+I fully understand that Anthropic, OpenAI, or any of the big companies will eventually build their own version of this - and probably better. I started this project before they were doing it, and I'm genuinely proud of the result. It's free to use - give it a try.
+
+I was building a large project with Claude Code and kept hitting the same problem: I'd describe what I wanted, Claude would start coding, and by the time it was done I'd already changed my mind about the approach. Planning and execution were tangled together in the same session, competing for the same context window.
 
 So I built crump. The idea is simple: **separate planning from execution**.
 
-You work with a lead agent in an interactive session — creating features, breaking them into tasks, writing requirements. Meanwhile, in another terminal, a worker agent picks up approved tasks, writes code, opens PRs, and waits for merge. You're planning task #5 while the agent is coding task #2.
+You work with a lead agent in an interactive session - creating features, breaking them into tasks, writing requirements. Meanwhile, in another terminal, a worker agent picks up approved tasks, writes code, opens PRs, and waits for merge. You're planning task #5 while the agent is coding task #2.
 
-Both sessions talk to the same server. When the worker finishes a task, the pipeline advances it. When you create a new task, the worker picks it up on the next sweep. It's like pair programming where your partner never gets tired and never loses context.
+Both sessions talk to the same server. When the worker finishes a task, the pipeline advances it. When you create a new task, the worker picks it up on the next sweep.
+
+---
+
+## What it looks like
+
+| Planning with lead agent | Worker loop executing tasks |
+|:---:|:---:|
+| ![Planning](docs/images/crump/planning-task-table.png) | ![Loop](docs/images/crump/loop-agent-spawn.png) |
+
+| Web dashboard - pipeline view | PRs merged on GitHub |
+|:---:|:---:|
+| ![Dashboard](docs/images/crump/webserver-pipeline.png) | ![PRs](docs/images/crump/github-prs-merged.png) |
+
+| Everything done | Server logs |
+|:---:|:---:|
+| ![Done](docs/images/crump/dashboard-done.png) | ![Server](docs/images/crump/dashboard-reviewing.png) |
+
+---
 
 ## Install
 
 ### Prerequisites
 
 - [Claude Code](https://claude.ai/code)
-- [GitHub CLI](https://cli.github.com/) — authenticated (`gh auth login`)
+- [GitHub CLI](https://cli.github.com/) - authenticated (`gh auth login`)
 - A GitHub repository
 
 ### 1. Install the Claude Code plugin
@@ -42,56 +62,65 @@ Or download from the [latest release](https://github.com/etra/crump-claude/relea
 | macOS (Apple Silicon) | `apple-aarch64` |
 | macOS (Intel) | `apple-x86_64` |
 | Linux (x86_64) | `linux-x86_64` |
-| Windows (x86_64) | `windows-x86_64` |
-
----
-
-## Demo
-
-[![crump in action](https://img.youtube.com/vi/eoWbNVz3LYM/maxresdefault.jpg)](https://youtu.be/eoWbNVz3LYM)
-
-> **10 min demo** — creating tasks in an interactive session, watching the worker loop implement them, PRs opening automatically, merging, and the full pipeline flow end-to-end.
 
 ---
 
 ## Architecture
 
-crump uses a server/client architecture. The server owns the database, pipeline state machine, and git operations (via GitHub API). Clients connect via transport (Unix socket or WebSocket) and execute work locally.
+crump uses a server/client architecture. The server owns the database, pipeline state machine, and git operations (via GitHub API). Clients connect via transport and execute work locally.
 
 ![Architecture](docs/images/crump/architecture.png)
 
-### Clients
+**Server** - owns data, runs the pipeline loop, manages branches and PRs via GitHub API
+
+**Clients:**
 
 | Client | What it does |
 |--------|-------------|
-| **Interactive Agent** | You + lead agent plan the project — create features, tasks, write requirements |
-| **Loop Agent** | Automated worker — picks up tasks, spawns Claude to write code, signals completion |
-| **Web Dashboard** | Read-only pipeline view — task status, feature progress, audit log |
-| **Slack Agent** | *(coming soon)* — notifications and commands via Slack |
+| **Interactive Agent** | You + lead agent plan the project - create features, tasks, write requirements |
+| **Loop Agent** | Automated worker - picks up tasks, spawns Claude, writes code, signals completion |
+| **Web Dashboard** | Read-only pipeline view - task status, feature progress, audit log |
+| **Slack Agent** | *(coming soon)* - check status, unblock agents, manage from Slack |
 
 ---
 
-## Quick Start
+## Getting Started
 
-### Step 1: Initialize the workspace (server)
+### Step 1: Initialize the workspace
 
 ```bash
 crump workspace init
 ```
 
-The wizard walks you through storage, transport, GitHub token, and pipeline configuration.
+The interactive wizard walks you through each configuration step:
 
-| Start | Summary |
+**Choose storage and transport:**
+
+| Storage | Transport |
 |:---:|:---:|
-| ![Init start](docs/images/crump/init-start.png) | ![Init summary](docs/images/crump/init-summary.png) |
+| ![Storage](docs/images/crump/init-storage.png) | ![Transport](docs/images/crump/init-transport.png) |
 
-### Step 2: Add projects
+**Configure the pipeline - choose which phases are automatic:**
+
+| Task phases | Feature phases |
+|:---:|:---:|
+| ![Task phases](docs/images/crump/init-task-phases.png) | ![Feature phases](docs/images/crump/init-feature-phases.png) |
+
+> **Auto** means the loop agent handles it. **Manual** means you control it. By default, implementation and review are auto - you plan, agents code.
+
+**Review the summary and confirm:**
+
+![Init summary](docs/images/crump/init-summary.png)
+
+### Step 2: Add GitHub repositories
 
 ```bash
 crump workspace project
 ```
 
-Select GitHub repositories from your account. Each project maps to a git repo that agents work in.
+![Project management](docs/images/crump/project-manage.png)
+
+Fetches your repos via `gh` CLI. Each project maps to a git repository that agents work in.
 
 ### Step 3: Start the server
 
@@ -99,9 +128,11 @@ Select GitHub repositories from your account. Each project maps to a git repo th
 crump server start
 ```
 
-![Server start](docs/images/crump/server-start.png)
+| Select workspace | Server running |
+|:---:|:---:|
+| ![Select](docs/images/crump/server-select.png) | ![Running](docs/images/crump/server-start.png) |
 
-The server starts the transport listener and pipeline loop. Leave this running.
+The server starts the transport listener and pipeline loop (ticks every 30s). Leave this running.
 
 ### Step 4: Generate a join token
 
@@ -109,30 +140,29 @@ The server starts the transport listener and pipeline loop. Leave this running.
 crump workspace token
 ```
 
-Copy the token — clients use it to connect.
+![Token](docs/images/crump/join-token.png)
 
-### Step 5: Join from a client machine (or another terminal)
+Copy the token - clients use it to connect.
+
+### Step 5: Join from a client
+
+In the directory where you have the project cloned:
 
 ```bash
-cd ~/your-project
 crump workspace join
 ```
 
-Paste the token. Map server projects to local git checkouts.
+| Paste token | Map projects to local directories |
+|:---:|:---:|
+| ![Paste](docs/images/crump/join-paste.png) | ![Map](docs/images/crump/join-projects.png) |
 
-![Join](docs/images/crump/join-projects.png)
+The token contains transport config (socket path, auth). You map server projects to your local git checkouts.
 
-### Step 6: Start the web dashboard
+---
 
-```bash
-crump webserver
-```
+## Planning Session
 
-Opens at `http://localhost:8080` — shows pipeline phases, task status, features, and audit log.
-
-![Dashboard](docs/images/crump/webserver-pipeline.png)
-
-### Step 7: Start an interactive planning session
+Start an interactive session with the lead agent:
 
 ```bash
 crump agent start
@@ -140,40 +170,119 @@ crump agent start
 # Select: crump-lead
 ```
 
-You and the lead agent create components, features, and tasks.
+![Planning session](docs/images/crump/planning-refine.png)
 
-| Planning with lead agent | Components created |
+You and the lead agent discuss the project. The agent creates components, features, and tasks:
+
+| Creating features and tasks | Components structure |
 |:---:|:---:|
-| ![Planning](docs/images/crump/planning-feature.png) | ![Components](docs/images/crump/planning-components.png) |
+| ![Feature](docs/images/crump/planning-feature.png) | ![Components](docs/images/crump/planning-components.png) |
 
-### Step 8: Start the worker loop
+The agent presents a structured plan with task breakdown, dependencies, and component assignments:
 
-Open a **separate terminal** with its own git checkout of the project:
+![Task table](docs/images/crump/planning-task-table.png)
+
+Everything stays in `draft` until you explicitly advance it. You control what gets implemented and when.
+
+The web dashboard shows your work in real-time:
+
+![Dashboard draft](docs/images/crump/dashboard-draft.png)
+
+---
+
+## Worker Loop
+
+In a **separate terminal** with its own git checkout, start the worker:
 
 ```bash
-cd ~/agent-work/your-project
+cd ~/agent-work/instance-1/your-project
+crump workspace join    # paste the same token
 crump agent start
 # Select: Loop Worker
 # Select: crump-worker
 ```
 
+| Select projects to work on | Select components |
+|:---:|:---:|
+| ![Projects](docs/images/crump/loop-select-projects.png) | ![Components](docs/images/crump/loop-select-components.png) |
+
 ![Loop start](docs/images/crump/loop-agent-start.png)
 
-The worker picks up tasks in auto phases, spawns Claude to write code, commits, pushes, and opens PRs.
+The worker picks up tasks in auto phases, advances them to active state, spawns Claude with a context-rich prompt (task requirements, feature context, acceptance criteria, phase instructions), and waits:
 
-![Loop spawn](docs/images/crump/loop-agent-spawn.png)
+![Worker executing](docs/images/crump/loop-agent-spawn.png)
 
-### Step 9: Review and merge
+You can watch tasks progress through the pipeline in the dashboard:
 
-Tasks in `reviewing` have open PRs on GitHub. Review, merge, and the pipeline advances them to `done`.
+| Implementing | Reviewing |
+|:---:|:---:|
+| ![Implementing](docs/images/crump/dashboard-implementing.png) | ![Reviewing](docs/images/crump/loop-agent-working2.png) |
 
-![PRs merged](docs/images/crump/github-prs-merged.png)
+When tasks complete, PRs appear on GitHub. Review, merge, and the pipeline advances to done:
+
+![GitHub PRs](docs/images/crump/github-prs-merged.png)
+
+The worker continues to the next task automatically. Once all tasks in a feature are done, the feature itself advances through validation and review:
+
+![Feature done](docs/images/crump/loop-agent-done.png)
+
+![Everything done](docs/images/crump/dashboard-done.png)
+
+---
+
+## The Pipeline
+
+Both tasks and features flow through three phases:
+
+| Phase | Pending | Active | Complete | What happens |
+|-------|---------|--------|----------|-------------|
+| **Refine** | `refine` | `refining` | `refined` | Research codebase, write requirements |
+| **Implement** | `implement` | `implementing` | `implemented` | Create branch, write code, add tests |
+| **Review** | `review` | `reviewing` | `reviewed` | Open PR, review, merge |
+
+A new task starts in `draft`. After all phases complete, it moves to `done`.
+
+### Who does what
+
+| Transition | Responsibility |
+|---|---|
+| `draft` -> `refine` | Server pipeline (automatic gate) |
+| `refine` -> `refining` | Agent loop (picks up, starts work) |
+| `refining` -> `refined` | Agent (signals completion) |
+| `refined` -> `implement` | Server pipeline (automatic gate) |
+| `implement` -> `implementing` | Agent loop (picks up, creates branch) |
+| `implementing` -> `implemented` | Agent (signals completion with summary) |
+| `implemented` -> `review` | Server pipeline (automatic gate) |
+| `review` -> `reviewing` | Agent loop (picks up, opens PR) |
+| `reviewing` -> `reviewed` | Server (detects PR merge) |
+| `reviewed` -> `done` | Server pipeline (merges PR, cleans up) |
+
+### Features
+
+Features group related tasks. A feature has its own pipeline:
+
+1. **Refine** - lead agent breaks the feature into tasks
+2. **Implement** - waits for all tasks to complete, then validates the feature branch
+3. **Review** - opens a feature PR to main, reviews combined changes
+
+Task PRs merge into the **feature branch**. The feature PR merges into **main**.
+
+### Git branching
+
+```
+main
+  |-- crump-{uid}-f{feature_id}              # feature branch
+        |-- crump-{uid}-f{fid}-t{task_id_1}  # task branch
+        |-- crump-{uid}-f{fid}-t{task_id_2}  # task branch
+```
+
+Standalone tasks (no feature) branch directly from main: `crump-{uid}-t{task_id}`
 
 ---
 
 ## Parallel Workers
 
-For faster execution, run multiple workers with separate git checkouts:
+Run multiple workers with separate git checkouts for faster execution:
 
 ```
 ~/agent-work/
@@ -182,168 +291,57 @@ For faster execution, run multiple workers with separate git checkouts:
   instance-3/your-project/    # Worker 3
 ```
 
-Each worker joins the same server and gets assigned different tasks. Setup:
+Each worker joins the same server and gets assigned different tasks. Tasks are first-come-first-served - once a worker picks up a task, no other worker touches it.
 
 ```bash
 # For each instance:
 cd ~/agent-work/instance-N/your-project
-crump workspace join    # paste the same token, map the project
+crump workspace join    # paste the same token
 crump agent start       # select Loop Worker
 ```
-
-Tasks are assigned first-come-first-served. Workers won't pick up tasks already being worked on (`implementing` state).
-
----
-
-## The Pipeline
-
-Both tasks and features flow through the same three phases. Each phase has three states:
-
-| Phase | Pending | Active | Complete | What the agent does |
-|-------|---------|--------|----------|---------------------|
-| **Refine** | `refine` | `refining` | `refined` | Research codebase, write requirements and acceptance criteria |
-| **Implement** | `implement` | `implementing` | `implemented` | Write code, add tests, verify build passes |
-| **Review** | `review` | `reviewing` | `reviewed` | Review PR, check acceptance criteria, approve or request changes |
-
-A new task starts in `draft`. After all three phases complete, it moves to `done`.
-
-### Who does what
-
-| Transition | Responsibility |
-|---|---|
-| `draft` → `refine` | Server pipeline tick (automatic gate) |
-| `refine` → `refining` | Agent loop (picks up task, starts work) |
-| `refining` → `refined` | Agent (signals completion) |
-| `refined` → `implement` | Server pipeline tick (automatic gate) |
-| `implement` → `implementing` | Agent loop (picks up task, starts work) |
-| `implementing` → `implemented` | Agent (signals completion with summary) |
-| `implemented` → `review` | Server pipeline tick (automatic gate) |
-| `review` → `reviewing` | Agent loop (picks up task, opens PR) |
-| `reviewing` → `reviewed` | Server (detects PR merge) |
-| `reviewed` → `done` | Server pipeline tick + PR merge |
-
-### Auto vs Manual phases
-
-Each phase can be **auto** (worker loop handles it) or **manual** (you control it). Configure during `crump workspace init`.
-
-Default: implementation and review are auto. Refinement is manual — you write the requirements.
-
-### Features
-
-Features group related tasks. A feature has its own pipeline:
-
-1. **Refine** — lead agent breaks the feature into tasks
-2. **Implement** — waits for all tasks to complete, then validates the feature branch
-3. **Review** — opens a feature PR to main, reviews combined changes
-
-Task PRs merge into the **feature branch**. The feature PR merges into **main**. This keeps main clean until the entire feature is validated.
-
-### Git branching
-
-```
-main
-  └── crump-{uid}-f{feature_id}              # feature branch
-        ├── crump-{uid}-f{fid}-t{task_id_1}  # task 1 branch
-        └── crump-{uid}-f{fid}-t{task_id_2}  # task 2 branch
-```
-
-Standalone tasks (no feature) branch directly from main: `crump-{uid}-t{task_id}`
 
 ---
 
 ## Commands
 
-### Workspace
-
 ```bash
-crump workspace init      # Create server workspace (interactive wizard)
-crump workspace token     # Generate handshake token for clients
-crump workspace join      # Connect client to server using token
-crump workspace project   # Add/remove GitHub repositories
+# Server setup
+crump workspace init          # Create workspace (interactive wizard)
+crump workspace project       # Add/remove GitHub repositories
+crump workspace token         # Generate join token for clients
+crump server start            # Start the server
+
+# Client setup
+crump workspace join          # Connect to server using token
+
+# Agents
+crump agent start             # Start an agent (interactive setup)
+crump agent list              # List configured agents
+
+# Dashboard
+crump webserver               # Start web dashboard (localhost:8080)
+
+# Direct commands
+crump exec '<json>'           # Execute JSON protocol commands
+crump <entity> <action> [--args]  # Direct entity commands
 ```
 
-### Server
-
-```bash
-crump server start        # Start the server (transport + pipeline loop)
-```
-
-### Agents
-
-```bash
-crump agent start         # Start an agent (interactive setup)
-crump agent list          # List configured agents
-```
-
-### Web Dashboard
-
-```bash
-crump webserver           # Start read-only web dashboard
-```
-
-### Direct entity commands
-
-```bash
-crump exec '<json>'                     # Execute JSON protocol commands
-crump <entity> <action> [--args]        # Direct CLI (alternative to JSON)
-```
-
----
-
-## Entity Reference
-
-| Entity | Purpose |
-|--------|---------|
-| **task** | Work items — smallest unit of work |
-| **feature** | High-level deliverables grouping tasks |
-| **component** | Modules/subsystems (backend, auth, UI) with tree hierarchy |
-| **project** | Git repositories (name + origin) |
-| **document** | Specs, design docs, reference material |
-| **comment** | Threaded discussion on tasks/features |
-| **workspace** | Top-level config (singleton) |
-
-### Task actions
-
-| Action | Input | What it does |
-|--------|-------|-------------|
-| `draft` | `{title, component_id, feature_id?, body?}` | Create a task |
-| `refine` | `{title, component_id, ...}` | Create and queue for refinement |
-| `implement` | `{title, component_id, ...}` | Create ready for implementation |
-| `get` | `{id}` | Get task by ID |
-| `list` | `{}` | List all tasks |
-| `filter` | `{status?, feature_id?, component_id?}` | Filter tasks |
-| `update` | `{id, title?, body?, depends_on?}` | Update fields |
-| `advance` | `{id}` | Advance to next state |
-| `move` | `{id, target}` | Move to any state (forward or backward) |
-| `refined` | `{id}` | Signal: refinement complete |
-| `implemented` | `{id, summary}` | Signal: implementation complete |
-| `reviewed` | `{id}` | Signal: review complete |
-| `block` | `{id, reason}` | Block with reason |
-| `unblock` | `{id}` | Clear blocked flag |
-| `reset` | `{id, reset_to?}` | Reset to previous state |
-| `cancel` | `{id}` | Cancel the task |
-| `prompt` | `{id, branch?}` | Build agent prompt |
-
-### Examples
+### Entity actions
 
 ```bash
 # Create a task
-crump exec '{"entity":"task","action":"draft","data":{"title":"Add login page","feature_id":1,"component_id":2}}'
-
-# Write requirements and signal done
-crump exec '{"entity":"task","action":"update","data":{"id":1,"body":"## Context\n..."}}'
-crump exec '{"entity":"task","action":"refined","data":{"id":1}}'
-
-# Signal implementation done
-crump exec '{"entity":"task","action":"implemented","data":{"id":1,"summary":"Added JWT auth with login endpoint"}}'
+crump exec '{"entity":"task","action":"draft","data":{"title":"Add login","feature_id":1,"component_id":2}}'
 
 # Move to any state
-crump exec '{"entity":"task","action":"move","data":{"id":1,"target":"draft"}}'
+crump exec '{"entity":"task","action":"move","data":{"id":1,"target":"implement"}}'
+
+# Signal implementation done
+crump exec '{"entity":"task","action":"implemented","data":{"id":1,"summary":"Added JWT auth"}}'
 
 # Block a task
 crump exec '{"entity":"task","action":"block","data":{"id":1,"reason":"Waiting for API spec"}}'
 
-# Or use the CLI directly
+# Or use CLI directly
 crump task draft --title "Add login page"
 crump task list
 crump task get --id 1
@@ -351,62 +349,22 @@ crump task get --id 1
 
 ---
 
-## Transport
-
-crump supports two transport types between server and clients:
-
-### Unix Socket (default)
-
-Fast, zero-config, single-machine. Communicates via `/tmp/crump.sock`.
-
-Best for: local development, single machine with multiple terminals.
-
-### WebSocket
-
-*Documentation coming soon.* Supports TLS, authentication tokens, and remote connections.
-
-Best for: multi-machine setups, remote workers.
-
----
-
-## Storage
-
-### SQLite (default)
-
-Zero-config, stores data in a local file. Recommended for most setups.
-
-### PostgreSQL
-
-*Documentation coming soon.* For teams and production deployments.
-
----
-
 ## Built-in Agents
 
 | Agent | Permission Mode | Purpose |
 |-------|----------------|---------|
-| `crump-lead` | `acceptEdits` | Interactive planning — create features, tasks, write requirements |
-| `crump-worker` | `bypassPermissions` | Automated execution — write code, run tests, signal completion |
+| `crump-lead` | `acceptEdits` | Interactive planning - create features, tasks, write requirements |
+| `crump-worker` | `bypassPermissions` | Automated execution - write code, run tests, signal completion |
 
 Custom agents can be added via `crump agent add`.
 
 ---
 
-## How It Works
-
-1. **Server** owns the database, pipeline state machine, and GitHub API operations (branch creation, PR management, merge)
-2. **Pipeline loop** runs on the server every 30s — advances gate transitions (refined→implement, implemented→review, reviewed→done) and polls PR merge status
-3. **Agent loop** (client) asks server for work items, advances pending→active, spawns Claude with a context-rich prompt, commits/pushes after agent exits
-4. **Auto-reconnect** — clients reconnect automatically if the server restarts (exponential backoff, up to 5 retries)
-5. **Audit trail** — every action is logged with timestamps, session IDs, and actor identity
-
----
-
 ## Documentation
 
-- [Installation](docs/installation.md) — full setup for all platforms
-- [How It Works](docs/how-it-works.md) — pipeline, state machine, git operations
-- [Plugin Structure](docs/plugin-structure.md) — what's in the Claude Code plugin
-- [Updating](docs/updating.md) — how to update binary and plugin
+- [Installation](docs/installation.md) - full setup for all platforms
+- [How It Works](docs/how-it-works.md) - pipeline, state machine, git operations, prompt generation
+- [Plugin Structure](docs/plugin-structure.md) - what's in the Claude Code plugin
+- [Updating](docs/updating.md) - how to update binary and plugin
 
 ---

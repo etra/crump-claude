@@ -16,22 +16,13 @@ curl -fsSL https://raw.githubusercontent.com/etra/crump-claude/main/install-crum
 
 It will prompt you to pick a version, choose an install directory, and optionally install the Claude Code plugin.
 
-## Windows
+Or download manually from the [latest release](https://github.com/etra/crump-claude/releases):
 
-Download the binary from the [latest release](https://github.com/etra/crump-claude/releases):
-
-| Platform | Path |
-|----------|------|
-| Windows x86_64 | `crump/windows-x86_64/crump.exe` |
-
-Place `crump.exe` somewhere in your `PATH`.
-
-Then install the Claude Code plugin:
-
-```bash
-claude plugin marketplace add https://github.com/etra/crump-claude
-claude plugin install crump@crump-plugins
-```
+| Platform | Binary |
+|----------|--------|
+| macOS (Apple Silicon) | `apple-aarch64` |
+| macOS (Intel) | `apple-x86_64` |
+| Linux (x86_64) | `linux-x86_64` |
 
 ## Verify
 
