@@ -10,6 +10,14 @@ curl -fsSL https://raw.githubusercontent.com/etra/crump-claude/main/install-crum
 
 Or download manually from the [releases page](https://github.com/etra/crump-claude/releases).
 
+After updating the server binary, restart the server:
+
+```bash
+crump server start
+```
+
+Clients will auto-reconnect when the server comes back up.
+
 ## Update the plugin
 
 ```bash

@@ -11,6 +11,7 @@ High-level deliverables that group related tasks — similar to epics
 | `body` | string? |  |
 | `depends_on` | array |  |
 | `id` | integer |  |
+| `project_id` | integer? | Project (git repo) this feature belongs to |
 | `status` | any |  |
 | `summary` | string? | Post-validation summary — captures what was validated and any issues found |
 | `title` | string |  |
@@ -20,6 +21,7 @@ High-level deliverables that group related tasks — similar to epics
 - has many `task`
 - has many `comment`
 - has many `document`
+- has one `project`
 
 ## Actions
 
@@ -28,13 +30,14 @@ High-level deliverables that group related tasks — similar to epics
 Create a feature
 
 ```json
-{"entity": "feature", "action": "draft", "data": {"body": "...", "depends_on": "...", "title": "..."}}
+{"entity": "feature", "action": "draft", "data": {"body": "...", "depends_on": "...", "project_id": 1, "title": "..."}}
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `body` | string | no | Detailed description, goals, or scope |
 | `depends_on` | array | no | IDs of features that must complete before this one can start |
+| `project_id` | integer | no | Project (git repo) this feature belongs to |
 | `title` | string | yes | Name of the feature or deliverable |
 
 ### refine
@@ -42,13 +45,14 @@ Create a feature
 Create a feature and queue it for refinement
 
 ```json
-{"entity": "feature", "action": "refine", "data": {"body": "...", "depends_on": "...", "title": "..."}}
+{"entity": "feature", "action": "refine", "data": {"body": "...", "depends_on": "...", "project_id": 1, "title": "..."}}
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `body` | string | no | Detailed description, goals, or scope |
 | `depends_on` | array | no | IDs of features that must complete before this one can start |
+| `project_id` | integer | no | Project (git repo) this feature belongs to |
 | `title` | string | yes | Name of the feature or deliverable |
 
 ### get
@@ -89,7 +93,7 @@ Filter features by field values
 Update feature fields
 
 ```json
-{"entity": "feature", "action": "update", "data": {"body": "...", "depends_on": "...", "id": 1, "summary": "...", "title": "..."}}
+{"entity": "feature", "action": "update", "data": {"body": "...", "depends_on": "...", "id": 1, "project_id": 1, "summary": "...", "title": "..."}}
 ```
 
 | Field | Type | Required | Description |
@@ -97,6 +101,7 @@ Update feature fields
 | `body` | string | no | New description or scope |
 | `depends_on` | array | no | IDs of features that must complete before this one can start |
 | `id` | integer | yes | ID of the feature to update |
+| `project_id` | integer | no | Project (git repo) this feature belongs to |
 | `summary` | string | no | Post-validation summary |
 | `title` | string | no | New title |
 
@@ -112,6 +117,19 @@ Advance feature to the next state
 |-------|------|----------|-------------|
 | `force` | boolean | no | Force advance into an auto phase (skips the auto-phase guard) |
 | `id` | integer | yes | ID of the entity |
+
+### move
+
+Move feature to any state (forward or backward)
+
+```json
+{"entity": "feature", "action": "move", "data": {"id": 1, "target": "..."}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | yes | ID of the entity |
+| `target` | string | yes | Target state (e.g. "draft", "implement", "review", "done") |
 
 ### refined
 
@@ -175,32 +193,19 @@ Unblock a feature (alias: unstuck)
 |-------|------|----------|-------------|
 | `id` | integer | yes | ID of the entity |
 
-### reject
-
-Reject a feature
-
-```json
-{"entity": "feature", "action": "reject", "data": {"body": "...", "id": 1, "title": "..."}}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `body` | string | yes | Body of the fix task — what went wrong and what needs to be done |
-| `id` | integer | yes | ID of the feature |
-| `title` | string | yes | Title of the fix task to create |
-
 ### reset
 
-Reset a feature to draft
+Reset feature to a previous state. Pass reset_to for target state, or omit to go back one step
 
 ```json
-{"entity": "feature", "action": "reset", "data": {"id": 1, "reason": "..."}}
+{"entity": "feature", "action": "reset", "data": {"id": 1, "reason": "...", "reset_to": "..."}}
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | integer | yes | ID of the entity |
-| `reason` | string | no | Why it needs to start over |
+| `reason` | string | no | Why it needs to reset |
+| `reset_to` | string | no | Target state to reset to (e.g. "draft", "implement"). Omit to go back one step. |
 
 ### cancel
 
@@ -212,6 +217,43 @@ Cancel a feature
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `id` | integer | yes | ID of the entity |
+
+### tick
+
+Advance feature one step in the pipeline (used by loop)
+
+```json
+{"entity": "feature", "action": "tick", "data": {"id": 1}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | yes | ID of the entity |
+
+### poke
+
+Run state-specific checks on a feature (e.g. PR merged detection)
+
+```json
+{"entity": "feature", "action": "poke", "data": {"id": 1}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | yes | ID of the entity |
+
+### prompt
+
+Build the agent prompt for a feature
+
+```json
+{"entity": "feature", "action": "prompt", "data": {"branch": "...", "id": 1}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `branch` | string | no | Branch name (included in task prompts for context) |
 | `id` | integer | yes | ID of the entity |
 
 ### add_task

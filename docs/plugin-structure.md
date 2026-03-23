@@ -2,12 +2,15 @@
 
 ## Overview
 
-The crump Claude Code plugin provides skills, agent prompts, and hooks that teach Claude how to interact with the crump CLI.
+The crump Claude Code plugin provides skills, agent definitions, and hooks that teach Claude how to interact with crump.
 
 ```
 plugins/crump/
 ├── .claude-plugin/
 │   └── plugin.json          # Plugin manifest
+├── agents/
+│   ├── crump-lead.md        # Lead agent prompt (planning)
+│   └── crump-worker.md      # Worker agent prompt (execution)
 ├── hooks/
 │   ├── hooks.json           # Hook configuration
 │   └── check-crump.sh       # Validates crump is installed
@@ -32,10 +35,9 @@ plugins/crump/
 The main skill that Claude invokes when interacting with crump. It defines:
 
 - The JSON protocol (`crump exec '{"entity": "...", "action": "...", "data": {...}}'`)
-- Response format with notifications
 - Pipeline phases (refine, implement, review) and auto/manual modes
-- Task lifecycle management (advance, reject, reset, block, cancel)
-- Summary/PR mapping (summary → commit message, body → PR body)
+- Task lifecycle management (advance, move, block, unblock, reset, cancel)
+- Completion signals (refined, implemented, reviewed) and what data each requires
 - Conventions for task bodies, dependencies, documents, comments
 
 ### Entity references (entities/*.md)
@@ -49,14 +51,16 @@ Auto-generated from the Rust metadata registry using `cargo xtask generate-entit
 
 **Do not edit these files manually** — they are overwritten on regeneration.
 
-### Agent prompts
+### Agent definitions
 
-Stored in the workspace directory (`~/.crump/workspaces/{uuid}/`), not in the plugin. Each workspace gets:
+Built into the crump binary and served from the server:
 
-- `crump-lead.md` — lead agent: plans features, creates tasks, monitors progress
-- `crump-worker.md` — worker agent: implements code, signals completion
+| Agent | Permission Mode | Purpose |
+|-------|----------------|---------|
+| `crump-lead` | `acceptEdits` | Interactive planning — create features, tasks, write requirements |
+| `crump-worker` | `bypassPermissions` | Automated execution — write code, run tests, signal completion |
 
-Local overrides can be placed in `.crump/` (project directory) — they take priority over workspace defaults.
+Custom agents can be added via `crump agent add`.
 
 ### Hook (check-crump.sh)
 

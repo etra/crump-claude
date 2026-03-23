@@ -8,6 +8,7 @@ Git repositories within the workspace — each project maps to a directory path 
 |-------|------|-------------|
 | `id` | integer |  |
 | `name` | string |  |
+| `origin` | string? | Origin URL (e.g. GitHub repository URL) |
 
 ## Relations
 
@@ -20,12 +21,13 @@ Git repositories within the workspace — each project maps to a directory path 
 Create a project
 
 ```json
-{"entity": "project", "action": "create", "data": {"name": "..."}}
+{"entity": "project", "action": "create", "data": {"name": "...", "origin": "..."}}
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `name` | string | yes | Project name (typically the git repo directory name) |
+| `origin` | string | no | Origin URL (e.g. GitHub repository URL) |
 
 ### get
 
@@ -52,13 +54,14 @@ List all projects
 Update project fields
 
 ```json
-{"entity": "project", "action": "update", "data": {"id": 1, "name": "..."}}
+{"entity": "project", "action": "update", "data": {"id": 1, "name": "...", "origin": "..."}}
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | integer | yes | ID of the project to update |
 | `name` | string | no | New project name |
+| `origin` | string | no | Origin URL (e.g. GitHub repository URL) |
 
 ### delete
 

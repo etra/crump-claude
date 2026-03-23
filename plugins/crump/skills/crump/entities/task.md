@@ -139,6 +139,19 @@ Advance task to the next state
 | `force` | boolean | no | Force advance into an auto phase (skips the auto-phase guard) |
 | `id` | integer | yes | ID of the entity |
 
+### move
+
+Move task to any state (forward or backward)
+
+```json
+{"entity": "task", "action": "move", "data": {"id": 1, "target": "..."}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | yes | ID of the entity |
+| `target` | string | yes | Target state (e.g. "draft", "implement", "review", "done") |
+
 ### refined
 
 Signal refinement complete
@@ -201,31 +214,19 @@ Unblock a task (alias: unstuck)
 |-------|------|----------|-------------|
 | `id` | integer | yes | ID of the entity |
 
-### reject
-
-Reject a task
-
-```json
-{"entity": "task", "action": "reject", "data": {"id": 1, "reason": "..."}}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | integer | yes | ID of the task |
-| `reason` | string | yes | What was wrong with the implementation |
-
 ### reset
 
-Reset a task to draft
+Reset task to a previous state. Pass reset_to for target state, or omit to go back one step
 
 ```json
-{"entity": "task", "action": "reset", "data": {"id": 1, "reason": "..."}}
+{"entity": "task", "action": "reset", "data": {"id": 1, "reason": "...", "reset_to": "..."}}
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `id` | integer | yes | ID of the entity |
-| `reason` | string | no | Why it needs to start over |
+| `reason` | string | no | Why it needs to reset |
+| `reset_to` | string | no | Target state to reset to (e.g. "draft", "implement"). Omit to go back one step. |
 
 ### cancel
 
@@ -237,6 +238,43 @@ Cancel a task
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `id` | integer | yes | ID of the entity |
+
+### tick
+
+Advance task one step in the pipeline (used by loop)
+
+```json
+{"entity": "task", "action": "tick", "data": {"id": 1}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | yes | ID of the entity |
+
+### poke
+
+Run state-specific checks on a task (e.g. PR merged detection)
+
+```json
+{"entity": "task", "action": "poke", "data": {"id": 1}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | integer | yes | ID of the entity |
+
+### prompt
+
+Build the agent prompt for a task
+
+```json
+{"entity": "task", "action": "prompt", "data": {"branch": "...", "id": 1}}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `branch` | string | no | Branch name (included in task prompts for context) |
 | `id` | integer | yes | ID of the entity |
 
 ### set_component

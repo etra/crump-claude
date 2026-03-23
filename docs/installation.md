@@ -3,47 +3,22 @@
 ## Prerequisites
 
 - [Claude Code](https://claude.ai/code) — the AI coding agent
-- [Git](https://git-scm.com/) — version control
-- [GitHub CLI](https://cli.github.com/) (`gh`) — crump uses it for PR creation, merging, and state checks. Must be authenticated (`gh auth login`).
+- [GitHub CLI](https://cli.github.com/) (`gh`) — authenticated (`gh auth login`)
+- A GitHub repository with push access
 
 ## macOS / Linux
 
-Run the installer — it will prompt you to pick a version, choose an install directory, and optionally install the Claude Code plugin:
+Run the installer:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/etra/crump-claude/main/install-crump.sh | bash
 ```
 
-Example session:
-
-```
-Detected: Darwin (arm64)
-
-Fetching available versions...
-Available versions:
-  1) v0.0.3 (latest)
-  2) v0.0.2
-
-Pick a version number [1 for v0.0.3]: 1
-Selected version: v0.0.3
-
-Install directory [/Users/you/.local/bin]:
-
-Downloading crump v0.0.3...
-Installed crump to /Users/you/.local/bin/crump
-Version: crump 0.0.3
-
-Install Claude Code plugin now? [Y/n]: Y
-
-Adding marketplace...
-Installing plugin...
-
-Done! Plugin installed.
-```
+It will prompt you to pick a version, choose an install directory, and optionally install the Claude Code plugin.
 
 ## Windows
 
-Download the binary manually from the [latest release](https://github.com/etra/crump-claude/releases) or from the repo:
+Download the binary from the [latest release](https://github.com/etra/crump-claude/releases):
 
 | Platform | Path |
 |----------|------|
@@ -65,44 +40,126 @@ crump --version
 gh auth status
 ```
 
-## Initialize a workspace
+---
+
+## Server Setup
+
+### 1. Initialize a workspace
 
 ```bash
-cd your-project
-crump workspace init "My Project"
+crump workspace init
 ```
 
-This creates:
-- `~/.crump/workspaces/{uuid}/` — central config, database, agent prompts
-- `.crump/config.json` — local pointer file
+The interactive wizard walks through:
+- **Workspace name** — your project title
+- **Storage** — SQLite (default, zero-config) or PostgreSQL *(coming soon)*
+- **Transport** — Unix socket (default, fast, single-machine) or WebSocket *(coming soon)*
+- **GitHub token** — for branch and PR operations via GitHub API
+- **Pipeline** — which phases are auto vs manual
 
-## Set up two directories
-
-For the full workflow (planning + execution), set up two copies of your repo:
+### 2. Add projects
 
 ```bash
-# Terminal 1: Lead agent (planning)
-cd ~/work/my-project
-crump workspace init "My Project"
-
-# Terminal 2: Worker agent (loop)
-cd ~/work
-git clone <your-repo-url> my-project-worker
-cd my-project-worker
-crump workspace attach
-# Select the workspace you just created
+crump workspace project
 ```
 
-Both directories share the same database. The lead plans tasks, the worker executes them.
+Fetches your GitHub repos via `gh` CLI. Select the ones you want to manage. Each project maps to a git repository.
 
-## Start
+### 3. Start the server
 
 ```bash
-# Terminal 1: Interactive planning
-crump start planning --agent crump-lead
-
-# Terminal 2: Automated execution
-crump start loop --agent crump-worker --poll 10
+crump server start
 ```
 
-The loop will prompt for permission mode and tools. For non-interactive agents, select `bypassPermissions`.
+Starts the transport listener and pipeline loop (ticks every 30s). Leave this running.
+
+### 4. Generate a join token
+
+```bash
+crump workspace token
+```
+
+Copy the base64 token. Clients use it to connect.
+
+---
+
+## Client Setup
+
+### 1. Join the workspace
+
+```bash
+cd ~/your-project   # must be a git checkout of a managed repo
+crump workspace join
+```
+
+Paste the token from the server. Map server projects to local git directories.
+
+### 2. Start the web dashboard
+
+```bash
+crump webserver
+```
+
+Opens at `http://localhost:8080`.
+
+### 3. Start an interactive planning session
+
+```bash
+crump agent start
+# Select: Interactive Agent
+# Select: crump-lead
+```
+
+### 4. Start the worker loop
+
+In a **separate terminal** with its own git checkout:
+
+```bash
+cd ~/agent-work/your-project
+crump workspace join    # paste the same token
+crump agent start
+# Select: Loop Worker
+# Select: crump-worker
+```
+
+---
+
+## Parallel Workers
+
+For faster execution, run multiple workers with separate git checkouts:
+
+```
+~/agent-work/
+  instance-1/your-project/    # Worker 1
+  instance-2/your-project/    # Worker 2
+  instance-3/your-project/    # Worker 3
+```
+
+Each instance needs:
+1. A full `git clone` of the repo
+2. `crump workspace join` with the same token
+3. `crump agent start` running
+
+Tasks are assigned first-come-first-served. Workers skip tasks already in `implementing` state.
+
+---
+
+## Transport Options
+
+### Unix Socket (default)
+
+Fast, zero-config, single-machine. Uses `/tmp/crump.sock`.
+
+Best for: local development, single machine with multiple terminals.
+
+### WebSocket
+
+*Documentation coming soon.*
+
+Supports TLS, authentication tokens, and remote connections. Best for multi-machine setups.
+
+### PostgreSQL
+
+*Documentation coming soon.*
+
+For teams and production deployments. Replaces SQLite.

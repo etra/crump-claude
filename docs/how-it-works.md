@@ -2,15 +2,17 @@
 
 ## Overview
 
-crump is a pipeline-driven project management tool for AI coding agents. It separates planning from execution:
+crump uses a **server/client architecture**. The server owns the database, pipeline state machine, and git operations (via GitHub API). Clients connect via transport (Unix socket or WebSocket), execute agent work locally, and signal completion.
 
-- **Planning**: you work with a lead agent in an interactive session to create features, tasks, and requirements
-- **Execution**: a loop picks up tasks, spawns worker agents, handles git (branches, commits, PRs)
-- **Communication**: both sessions share the same database. Notifications keep each side informed of changes.
+- **Server** — stores all data, runs the pipeline loop, manages branches and PRs via GitHub API
+- **Interactive Agent** — you + lead agent plan features, create tasks, write requirements
+- **Loop Agent** — automated worker that picks up tasks, spawns Claude to write code, signals completion
+- **Web Dashboard** — read-only pipeline view
+- **Slack Agent** — *(coming soon)* notifications and commands
 
 ## JSON protocol
 
-All agent interaction goes through `crump exec`:
+All interaction goes through `crump exec`, which sends JSON-RPC to the server:
 
 ```bash
 crump exec '{"entity": "task", "action": "draft", "data": {"title": "Add login"}}'
@@ -19,17 +21,6 @@ crump exec '{"entity": "task", "action": "draft", "data": {"title": "Add login"}
 Response:
 ```json
 {"ok": true, "data": {"id": 1, "title": "Add login", "status": "draft", ...}}
-```
-
-Responses include notifications from other sessions:
-```json
-{
-  "ok": true,
-  "data": {...},
-  "notifications": [
-    {"entity": "task", "entity_id": 2, "message": "Task #2 — implement → implementing"}
-  ]
-}
 ```
 
 ## Entities
@@ -42,9 +33,8 @@ Responses include notifications from other sessions:
 | **document** | Specs, design docs, reference material |
 | **document_type** | Classification labels for documents |
 | **comment** | Threaded discussion on tasks and features |
-| **project** | Git repositories within the workspace |
-| **config** | Top-level workspace config (title, summary) |
-| **notification** | Pipeline events for cross-session awareness |
+| **project** | Git repositories (name + origin as owner/repo) |
+| **workspace** | Top-level config (title, summary) — singleton |
 
 ## Pipeline
 
@@ -54,11 +44,9 @@ Responses include notifications from other sessions:
 draft → refine → refining → refined → implement → implementing → implemented → review → reviewing → reviewed → done
 ```
 
-Each phase has three states: **pending** (queued), **active** (work happening), **complete** (work done).
-
 ### Feature lifecycle
 
-Same structure but with implementation meaning "all tasks are done":
+Same phases, but implementation means "all tasks are done, validate the feature branch":
 
 ```
 draft → refine → refining → refined → implement → implementing → implemented → review → reviewing → reviewed → done
@@ -68,67 +56,111 @@ draft → refine → refining → refined → implement → implementing → imp
 
 | Type | Examples | Behavior |
 |------|----------|----------|
-| **Pending** (gate) | draft, refine, implement, review | Auto-advance when conditions met |
-| **Active** (phase) | refining, implementing, reviewing | Agent or user does work |
-| **Complete** (gate) | refined, implemented, reviewed | Auto-advance |
+| **Pending** | refine, implement, review | Waiting for agent pickup |
+| **Active** | refining, implementing, reviewing | Agent is working |
+| **Complete** | refined, implemented, reviewed | Work done, gate to next phase |
 | **Terminal** | done, cancelled | End state |
+
+### Who does what
+
+| Transition | Responsibility |
+|---|---|
+| `draft` → `refine` | Server pipeline tick (automatic gate) |
+| `refine` → `refining` | Agent loop (picks up, starts work) |
+| `refining` → `refined` | Agent (signals completion) |
+| `refined` → `implement` | Server pipeline tick (automatic gate) |
+| `implement` → `implementing` | Agent loop (picks up, creates branch, starts work) |
+| `implementing` → `implemented` | Agent (signals completion with summary) |
+| `implemented` → `review` | Server pipeline tick (automatic gate) |
+| `review` → `reviewing` | Agent loop (picks up, opens PR) |
+| `reviewing` → `reviewed` | Server (detects PR merge via GitHub API) |
+| `reviewed` → `done` | Server pipeline tick (merges PR, cleans up branch) |
+
+**Key principle**: the server pipeline tick only advances **gate transitions** (complete→next pending). It never advances pending→active — that's exclusively the agent loop's job.
 
 ### Auto vs Manual phases
 
 Each phase can be configured as:
-- **Auto**: the loop spawns an agent, waits for completion, advances
-- **Manual**: the loop skips it. You control when to advance.
+- **Auto**: the loop agent picks it up, spawns Claude, waits for completion
+- **Manual**: the loop skips it — you control when to advance
 
-For manual review: the loop still opens the PR and watches for merge. Once merged on GitHub, the loop advances automatically.
-
-### State lifecycle
-
-Every transition follows:
-1. `check_exit(current)` — can we leave?
-2. `check_entry(next)` — can we enter?
-3. `on_enter(next)` — setup (create branch, open PR)
-4. Status update
-5. Execute (spawn agent if auto active state)
-6. `on_exit` — validate (check summary, commit+push)
+Default configuration: implementation and review are auto. Refinement is manual.
 
 ### Completion signals
 
 Agents signal completion with specific actions:
-- `refined` — refinement done (body written)
-- `implemented` — implementation done (requires summary → becomes git commit message)
-- `reviewed` — review done (crump merges the PR)
+- `refined` — refinement done (task body must be written first)
+- `implemented` — implementation done (requires `summary` — becomes the git commit message)
+- `reviewed` — review done (server merges the PR)
 
-### Poke system
+If the agent can't complete, it signals `block` with a reason.
 
-Every loop sweep "pokes" all tasks. Most states do nothing. But `reviewing` checks if the PR was merged externally and advances automatically.
+### Dependencies
+
+Tasks and features support `depends_on` for ordering:
+- Dependencies don't block state transitions — a task can move to `implement` even if deps aren't met
+- Dependencies block **agent pickup** — a task won't be handed to a worker until all deps are terminal (done/cancelled)
 
 ## Git operations
 
-crump handles all git through the `gh` CLI:
+The **server** handles all git operations via GitHub API (no local git on the server):
 
 | When | What happens |
 |------|-------------|
-| Task enters `implementing` | Fetch, checkout task branch off feature branch |
-| Agent signals `implemented` | Commit+push on task branch (summary = commit message) |
-| Task enters `reviewing` | Open PR (task body = PR body) |
-| PR merged on GitHub | Loop detects, advances to `reviewed` |
-| Task enters `reviewed` | Delete local branch |
-| Feature enters `implement` | Create+push feature branch |
-| Feature enters `reviewing` | Commit+push, open feature PR |
+| Task enters `implement` | Server creates task branch via GitHub API |
+| Agent finishes implementing | Client commits + pushes to task branch |
+| Task enters `review` | Server opens PR (task branch → feature branch or main) |
+| Task enters `reviewed` | Server merges the PR via GitHub API |
+| Task enters `done` | Server deletes the task branch |
+| Feature enters `implement` | Server creates feature branch |
+| Feature enters `review` | Server opens feature PR (feature branch → main) |
+| Feature enters `reviewed` | Server merges the feature PR |
 
-Branch naming: `crump-{workspace_short}-f{feature_id}-t{task_id}` — unique per workspace.
+### Branch naming
 
-## Session modes
+```
+main
+  └── crump-{uid}-f{feature_id}              # feature branch
+        ├── crump-{uid}-f{fid}-t{task_id_1}  # task branch
+        └── crump-{uid}-f{fid}-t{task_id_2}  # task branch
+```
 
-| Mode | What it does |
-|------|-------------|
-| `planning` | Interactive session with lead agent. You plan features and tasks. |
-| `once` | One sweep through all tasks/features, advance each by one step, exit. |
-| `loop` | Continuous sweeps. Spawns agents for auto phases. Polls every N seconds. |
+Standalone tasks (no feature) branch directly from main: `crump-{uid}-t{task_id}`
+
+The `{uid}` is the first 8 characters of the server's workspace UUID — ensures branch names are unique per workspace.
+
+### PR flow
+
+- **Task PRs** merge into the feature branch (or main if standalone)
+- **Feature PRs** merge into main
+- This keeps main clean until the entire feature is validated
+
+## Agent prompts
+
+When the agent loop picks up a task, it:
+
+1. Advances the task from pending → active (e.g. `implement` → `implementing`)
+2. Fetches a context-rich prompt from the server via `task prompt`
+3. Spawns Claude with the prompt
+
+The prompt includes:
+- Task title, body (requirements/acceptance criteria)
+- Feature context (title, description)
+- Component context (name, prefix)
+- Dependencies (with their statuses)
+- Linked documents
+- Branch name
+- Phase-specific instructions (what to do)
+- Completion command (how to signal done, what data is required)
+- Blocked command (how to signal stuck)
 
 ## Notifications
 
-The loop writes notifications for state transitions and blocks. When an interactive session calls `crump exec`, it receives notifications from the loop since its last request. Self-actions are filtered out.
+Mutations broadcast in-memory notifications to all connected clients via the transport layer (60s TTL). Interactive agents see what the loop is doing, and vice versa.
+
+## Auto-reconnect
+
+All clients (web dashboard, agent loop, interactive agent) automatically reconnect if the server restarts — exponential backoff, up to 5 retries (1s, 2s, 4s, 8s, 16s).
 
 ## Web dashboard
 
@@ -136,4 +168,9 @@ The loop writes notifications for state transitions and blocks. When an interact
 crump webserver
 ```
 
-Shows pipeline view, tasks, features, sessions, audit log at `http://localhost:8080`.
+Opens at `http://localhost:8080`. Shows:
+- Pipeline view with state counts
+- Features and tasks with statuses
+- Components and projects
+- Sessions and agents
+- Audit log
